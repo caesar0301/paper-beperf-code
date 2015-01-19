@@ -1,3 +1,6 @@
+*.idea
+*.iml
+
 # History files
 .Rhistory
 
@@ -9,3 +12,4 @@
 
 # RStudio files
 .Rproj.user/
+.Rproj.user
