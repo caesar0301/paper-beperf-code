@@ -1,6 +1,6 @@
 {
     "name": "NetflowRecord",
-    "namespace": "sjtu.omnilab.beperf.avro",
+    "namespace": "cn.edu.sjtu.omnilab.beperf.avro",
     "type": "record",
     "fields": [
         {"name": "devMacAddr", "type": ["string", "null"]},

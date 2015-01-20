@@ -1,9 +1,11 @@
 package cn.edu.sjtu.omnilab.beperf.apps;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-
+import cn.edu.sjtu.omnilab.beperf.avro.HttpRecord;
+import cn.edu.sjtu.omnilab.beperf.avro.NetflowRecord;
+import cn.edu.sjtu.omnilab.beperf.utils.CSVParser;
+import cn.edu.sjtu.omnilab.beperf.utils.MyUtils;
+import cn.edu.sjtu.omnilab.mrmlf.MultilineInputFormat;
+import cn.edu.sjtu.omnilab.mrmlf.TextArrayWritable;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapreduce.AvroJob;
 import org.apache.avro.mapreduce.AvroKeyOutputFormat;
@@ -25,12 +27,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sjtu.omnilab.beperf.avro.HttpRecord;
-import sjtu.omnilab.beperf.avro.NetflowRecord;
-import cn.edu.sjtu.omnilab.beperf.utils.CSVParser;
-import sjtu.omnilab.beperf.utils.MyUtilities;
-import sjtu.omnilab.mr.input.MultilineInputFormat;
-import sjtu.omnilab.mr.input.TextArrayWritable;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 public class DataSerializeMR  extends Configured implements Tool  {
     
@@ -194,7 +193,7 @@ public class DataSerializeMR  extends Configured implements Tool  {
                     String field = "";
                     try{ // Src fields
                         field = parts[0];
-                        try{ netflowRecord.setSrcIpAddr(field.equals(TSTAT_NONSTRING) ? null : MyUtilities.convertIpString2Long(field)); }
+                        try{ netflowRecord.setSrcIpAddr(field.equals(TSTAT_NONSTRING) ? null : MyUtils.convertIpString2Long(field)); }
                         catch (NumberFormatException e) {
                             logger.error(e.toString()+", "+line);
                             // A known error in tagged logs where a field shifts left
@@ -372,7 +371,7 @@ public class DataSerializeMR  extends Configured implements Tool  {
 
                         // Dst
                         field = parts[44];
-                        try{ netflowRecord.setDstIpAddr(field.equals(TSTAT_NONSTRING) ? null : MyUtilities.convertIpString2Long(field)); }
+                        try{ netflowRecord.setDstIpAddr(field.equals(TSTAT_NONSTRING) ? null : MyUtils.convertIpString2Long(field)); }
                         catch (NumberFormatException e) {}
 
                         field = parts[45];
@@ -624,7 +623,7 @@ public class DataSerializeMR  extends Configured implements Tool  {
                     try{
                         HttpRecord httpRecord = new HttpRecord();          
                         long srcIpAddr = -1;
-                        try{ srcIpAddr = MyUtilities.convertIpString2Long(parts[0]); }
+                        try{ srcIpAddr = MyUtils.convertIpString2Long(parts[0]); }
                         catch( NumberFormatException e) {}
                         
                         if ( netflowRecord.getSrcIpAddr() != null ) {
@@ -640,7 +639,7 @@ public class DataSerializeMR  extends Configured implements Tool  {
                         }
                         
                         if ( netflowRecord.getDstIpAddr() == null ){
-                            try { netflowRecord.setDstIpAddr(MyUtilities.convertIpString2Long(parts[2])); }
+                            try { netflowRecord.setDstIpAddr(MyUtils.convertIpString2Long(parts[2])); }
                             catch ( NumberFormatException e ) {}
                         }
                         

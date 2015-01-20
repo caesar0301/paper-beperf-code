@@ -1,10 +1,7 @@
 package cn.edu.sjtu.omnilab.beperf.apps;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
+import cn.edu.sjtu.omnilab.beperf.avro.NetflowRecord;
+import cn.edu.sjtu.omnilab.beperf.measures.NetflowAnomaly;
 import cn.edu.sjtu.omnilab.beperf.measures.RequiredFieldAbsentException;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapred.AvroValue;
@@ -26,8 +23,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sjtu.omnilab.beperf.avro.NetflowRecord;
-import cn.edu.sjtu.omnilab.beperf.measures.NetflowAnomaly;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 public class AnomalyDetectMR extends Configured implements Tool {
 	private final static Logger logger = LoggerFactory.getLogger(AnomalyDetectMR.class);

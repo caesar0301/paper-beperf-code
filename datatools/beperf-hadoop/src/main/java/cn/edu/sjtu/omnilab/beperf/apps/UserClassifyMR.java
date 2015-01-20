@@ -1,13 +1,6 @@
 package cn.edu.sjtu.omnilab.beperf.apps;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import cn.edu.sjtu.omnilab.beperf.avro.NetflowRecord;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapred.AvroValue;
 import org.apache.avro.mapreduce.AvroJob;
@@ -30,7 +23,13 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sjtu.omnilab.beperf.avro.NetflowRecord;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class UserClassifyMR extends Configured implements Tool {
 	

@@ -1,6 +1,6 @@
 package cn.edu.sjtu.omnilab.beperf.measures;
 
-import sjtu.omnilab.beperf.avro.NetflowRecord;
+import cn.edu.sjtu.omnilab.beperf.avro.NetflowRecord;
 
 public class NetflowAnomaly {
 	private static final int alpha = 1;

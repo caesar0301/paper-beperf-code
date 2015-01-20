@@ -1,8 +1,11 @@
+# Java compling files
 *.idea
 *.iml
+*target
 
 # History files
 .Rhistory
+.RData
 
 # Example code in package build process
 *-Ex.R
