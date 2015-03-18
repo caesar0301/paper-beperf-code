@@ -75,7 +75,7 @@ serialize.mydata <- function(engage_micro_file){
     print("Add service rank ...")
     mydata <- rank.service(mydata)
     ## transform fields
-    mydata <- transform(mydata)
+    mydata <- transform2(mydata)
     mydata
 }
 
@@ -118,7 +118,7 @@ rank.service <- function(en.mob){
     })
 }
 
-transform <- function(en.mob){
+transform2 <- function(en.mob){
     ddply(en.mob, ~ UID, function(x){
         ## scale fields
         x$SDur <- x$SDur/60 # minutes
@@ -286,7 +286,7 @@ hmm.model.select <- function(stat, models, plot=FALSE){
         p <- p + theme(legend.position=c(0.85,0.75),
                        axis.title.x=element_text(size=15),
                        axis.title.y=element_text(size=15))
-        ggsave("figures/hmm-model-selection.pdf", p, width=5, height=3)
+        ggsave("figures/hmm-model-selection.pdf", p, width=4, height=3.5)
     }
     state <- stat$state[order(stat$AICC)][1]
     ## Select optimal model

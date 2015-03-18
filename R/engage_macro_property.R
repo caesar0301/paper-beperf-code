@@ -21,7 +21,7 @@ dev.off()
 session.cnt <- ddply(en.mob.macro, c("UID"), function(x)(nrow(x)))
 colnames(session.cnt) <- c("UID","sessions")
 p <- ggplot(session.cnt, aes(sessions)) + stat_ecdf() +
-    coord_cartesian(xlim=c(0,400))
+  coord_cartesian(xlim=c(0,400))
 ggsave("figures/engage-macro-obs-cnt.pdf", p)
 pdf("figures/engage-macro-obs-cnt2.pdf")
 plot(session.cnt$UID, session.cnt$sessions, xlim=c(0,1000))
@@ -38,18 +38,18 @@ postscript("figures/engage-macro-entropy.eps", width=10, height=4)
 layout(matrix(c(1,3,2,3), nrow=2, byrow=T))
 par(mar=c(3,3,2,1), cex.lab=3, cex.axis=1.5, cex.main=1.5)
 random.user <- function(en.mob, entropies.mob){
-    user <- en.mob[which(en.mob$UID==sample(entropies.mob$UID, 1)),]
-    return(user)}
+  user <- en.mob[which(en.mob$UID==sample(entropies.mob$UID, 1)),]
+  return(user)}
 users <- rbind(random.user(en.mob.macro, entropies.mob),
                random.user(en.mob.macro, entropies.mob))
 
 ## Cal sdur prob
 sdur.prob <- function(users, group){
-    stat <- ddply(users, c("UID"), function(x){
-        stat.app <- ddply(x, group, function(y){sum(y$SDur)})
-        colnames(stat.app) <- c(group,"SDur")
-        stat.app$prob <- stat.app$SDur / sum(stat.app$SDur)
-        return(stat.app)})}
+  stat <- ddply(users, c("UID"), function(x){
+    stat.app <- ddply(x, group, function(y){sum(y$SDur)})
+    colnames(stat.app) <- c(group,"SDur")
+    stat.app$prob <- stat.app$SDur / sum(stat.app$SDur)
+    return(stat.app)})}
 
 ## Plot service dist
 stat <- acast(sdur.prob(users, c("SrvRank")), UID~SrvRank, value.var="prob")
@@ -70,7 +70,7 @@ par(mar=c(4.5,4.5,2,2), cex.lab=2, lwd=2)
 plot(density(ents$service.en), col=2, xlab="Entropy",
      ylab="p.d.f.", main="", xlim=c(0, 6), ylim=c(0, 2))
 for( i in c(3:5))
-    lines(density(ents[,i-1]), col=i)
+  lines(density(ents[,i-1]), col=i)
 
 ## Groundtruth in random
 ents <- entropies.mob[,c("service.en","building","TOD","SDur")]

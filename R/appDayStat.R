@@ -1,7 +1,7 @@
 #!/usr/bin/R
 # Read and clean data
-AppCat <- read.csv("../data/app_mtc/AppCat.csv", sep='\t', head=T)
-input='../data/app_mtc/appProtoStat.day.nmob.txt'
+AppCat <- read.csv("../data/app-mtc/AppCat.csv", sep='\t', head=T)
+input='../data/app-mtc/appProtoStat.day.mob.txt'
 
 # Prepare data
 ns <- c('time','proto','flw','pkt_K','byt_M', 'flw_r','pkt_r','byt_r')
@@ -18,9 +18,9 @@ app.dm<- app.dm[order(app.dm$strdate), ]
 ta <- aggregate(byt_r ~ strdate+Category, data=app.dm, FUN=sum)
 ts <- ta[ta$Category %in% c("HTTP","InstantMessaging","Streaming","NetMan"),]
 
-postscript('appDayStat-nmob.eps',width=8,height=4)
+postscript('figures/appDayStat-mob.eps',width=8,height=4)
 library(ggplot2)
-p <- ggplot(data = ts, aes(x=strdate, y=byt_r, group=Category)) +
+p <- ggplot(ts, aes(x=strdate, y=byt_r, group=Category)) +
   # labels and title
   labs(title="", x="Time", y="Volumn ratio", colour="Category") +
   # draw lines
