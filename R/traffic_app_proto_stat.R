@@ -10,9 +10,8 @@ app.am <- merge(app.am, AppCat, by.x='proto', by.y='ID')
 levels(app.am$Category) <- c(levels(app.am$Category), "IM") # increase level
 app.am$Category[app.am$Category=="InstantMessaging"] <- "IM"
 
-
 # flows
-postscript("appProtoFlw-nmob.eps",height=6,width=8) # set graph size
+postscript("figures/app-proto-flow-nmob.eps",height=6,width=8) # set graph size
 ta <- aggregate(flw_r ~ Category, data=app.am, FUN=sum)
 ta[which(ta$flw_r<0.01),]$Category <- "Other"
 ta <- aggregate(flw_r ~ Category, data=ta, FUN=sum)
@@ -31,7 +30,7 @@ dev.off()
 
 
 # bytes
-postscript("appProtoByt-nmob.eps",height=6,width=8)
+postscript("figures/app-protol-byte-nmob.eps",height=6,width=8)
 ta <- aggregate(byt_r ~ Category, data=app.am, FUN=sum)
 ta[which(ta$byt_r<0.01),]$Category = "Other"
 ta <- aggregate(byt_r ~ Category, data=ta, FUN=sum)

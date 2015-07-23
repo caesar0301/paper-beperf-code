@@ -28,10 +28,9 @@ aem$gap <- as.factor(aem$gap)
 #   stat_summary(fun.y=mean, geom="point",size=4) +
 #   expand_limits(y=c(0.5,0.9))
 
-postscript("eval.eps",width=4.5,height=5) # fix graph size
 text.tick <- element_text(size = 14)
 text.label <- element_text(colour="#990000", size=20)
-p <- ggplot(aem.trc, aes(x=gap, y=V1)) + 
+(p <- ggplot(aem.trc, aes(x=gap, y=V1)) + 
   stat_summary(fun.y=median, geom="line",size=1, colour="#009966")  + 
   stat_summary(fun.y=median, geom="point",size=4, colour="#009966", shape=17) +
   expand_limits(y=c(0.7,0.9)) +
@@ -39,25 +38,18 @@ p <- ggplot(aem.trc, aes(x=gap, y=V1)) +
   theme(axis.text.x = text.tick,
         axis.text.y = text.tick,
         axis.title.x = text.label,
-        axis.title.y = text.label)
-print(p)
-dev.off()
+        axis.title.y = text.label))
+ggsave("figures/aem-eval-tao.eps", width=4.5,height=5)
 
 ss <- read.csv("../data/aem-evl/perf_streamstructure.out", header=F)
 cmp <- rbind(data.frame(type=1, val=ss$V1),
              data.frame(type=2, val=aem.trc$V1[which(aem.trc$gap==2)]))
-
-postscript("aem-vs-ss.eps", width=4.5,height=5)
-p1 <- ggplot(cmp, aes(x=type, y=val, group=type)) +
+(p1 <- ggplot(cmp, aes(x=type, y=val, group=type)) +
   geom_boxplot() + 
   geom_jitter(shape=1, position = position_jitter(width = .05)) +
   scale_x_discrete(limit = c("StreamStructure", "AID")) +
   labs(x="", y="Detection Accuracy") +
   theme(axis.text.x = text.label,
         axis.text.y = text.tick,
-        axis.title.y = text.label)
-print(p1)
-dev.off()
-
-print(p)
-print(p1)
+        axis.title.y = text.label))
+ggsave("figures/aem-eval-vs-ss.eps", width=4.5,height=5)

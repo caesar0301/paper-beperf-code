@@ -23,26 +23,22 @@ all <- bindtwo('../../data/activity/lat-jit-m.out',
 
 lj.ml <- melt(all, measure.vars=c('sLat', 'dLat'))
 # Latency
-postscript("lat.eps",height=3.5,width=3.5)
-p <- ggplot(lj.ml, aes(value, color=variable, linetype=type)) +
+(p <- ggplot(lj.ml, aes(value, color=variable, linetype=type)) +
   stat_ecdf() + theme_bw() +
   scale_x_log10(name='Network latency (ms)', limits=c(0.1, 1000)) +
   scale_y_continuous(name='Cumulative portion of activities') +
   scale_colour_discrete(name='Direction', labels=c('Client', 'Server')) +
   scale_linetype_discrete(name='Devices', labels=c('Mob', 'NMob')) +
-  theme(legend.position=c(.2, .7))
-plot(p)
-dev.off()
+  theme(legend.position=c(.2, .7)))
+ggsave("figures/net-latency.eps", p, height=3.5,width=3.5)
 
 lj.ml2 <- melt(all, measure.vars=c('sJit', 'dJit'))
 # Jitter
-postscript("jitter.eps",height=3.5,width=3.5)
-p <- ggplot(lj.ml2, aes(value, color=variable, linetype=type)) +
+(p <- ggplot(lj.ml2, aes(value, color=variable, linetype=type)) +
   stat_ecdf() + theme_bw() +
   scale_x_log10(name='Network jitter (ms)', limits=c(0.01, 1000)) +
   scale_y_continuous(name='Cumulative portion of activities') +
   scale_colour_discrete(name='Direction', labels=c('Client', 'Server')) +
   scale_linetype_discrete(name='Devices', labels=c('Mob', 'NMob')) +
-  theme(legend.position='none')
-plot(p)
-dev.off()
+  theme(legend.position='none'))
+ggsave("figures/net-jitter.eps", p, height=3.5,width=3.5)

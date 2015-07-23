@@ -31,7 +31,7 @@ pkts$time <- timeMod(pkts$time-mtime)
 
 
 # Plot user interaction and network traffic
-postscript("InteractionTrace.eps",height=6,width=8)
+postscript("figures/user-device-interactions.eps",height=6,width=8)
 par(mar=c(5,1,1,1), mgp=c(3,0.8,0)) # change device params
 xmx <- min(c(max(clicks$time), max(pkts$time), max(flws$time)))
 ymx <- 8
@@ -86,7 +86,7 @@ dev.off()
 
 
 # Plot user interaction and network footprint density
-postscript("InteractionDesity.eps",height=6,width=8)
+postscript("figures/user-device-intdens.eps",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 plot.multi.dens <- function(s)
 {
@@ -115,14 +115,13 @@ dev.off()
 
 
 # Plot flow and packet emission time
-#readline("Flow and packet emission:\n")
-postscript("FlowEmission.eps",height=6,width=8)
+postscript("figures/user-device-flow-emission.eps",height=6,width=8)
 plot(flws$time, xlab="Flow Index", ylab="Flow Emission Time (seconds)", pch=20, ylim=c(0, xmx))
 grid()
 dev.off()
 
 
-postscript("PacketEmission.eps",height=6,width=8)
+postscript("figures/user-device-packet-emission.eps",height=6,width=8)
 plot(pkts$time, xlab="Packet Index", ylab="Packet Emission Time (seconds)", pch=20, ylim=c(0,xmx))
 grid()
 dev.off()

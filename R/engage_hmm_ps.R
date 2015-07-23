@@ -9,31 +9,7 @@ library(reshape2)
 library(scales)
 library(car)
 library(grid)
-source("engage_common.R")
-
-## Load data
-en.mob.ori <- readRDS("rdata/engage.filtered.mob.rds")
-en.mob <- en.mob.ori
-en.mob$TOD <- as.numeric(en.mob$TOD)
-en.mob$service.en <- as.numeric(en.mob$service.en)
-en.mob$BRank <- as.numeric(en.mob$BRank)
-
-## Generate a experimental sample
-en.mob.s <- sample.trajs(en.mob, 100)
-saveRDS(en.mob.s, "rdata/engage.macro.s100.rds")
-
-## All users modeling
-models <- dlply(en.mob.s, c("UID"), function(user) hmm.learn(user))
-na.selector <- sapply(models, is.na)
-models[na.selector] <- NULL# remove NA
-attr(models, "split_labels") <- attr(models, "split_labels")[!na.selector,]
-saveRDS(models, "rdata/engage.hmm.models.s100.rds")
-
-## Calculate distance matrix
-models <- readRDS("rdata/engage.hmm.models.s100.rds")
-en.mob.s <- sample.trajs(en.mob, 200) # calculate converge threshold
-dm <- as.dist(hmm.dm(models, en.mob.s))
-saveRDS(dm, "rdata/engage.hmm.dmat.rds")
+source("commons.R")
 
 ## Plot dissimilarity matrix
 en.mob.s <- readRDS("rdata/engage.macro.s100.rds")

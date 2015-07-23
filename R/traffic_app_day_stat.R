@@ -1,4 +1,6 @@
 #!/usr/bin/R
+library(ggplot2)
+
 # Read and clean data
 AppCat <- read.csv("../data/app-mtc/AppCat.csv", sep='\t', head=T)
 input='../data/app-mtc/appProtoStat.day.mob.txt'
@@ -9,27 +11,22 @@ app.dm <- read.csv(input, sep='\t',head=F)
 colnames(app.dm) <- ns
 app.dm$time <- as.POSIXlt(app.dm$time)
 app.dm <- merge(app.dm, AppCat, by.x='proto', by.y='ID')
-app.dm$strdate <- strftime(app.dm$time, format="%Y/%m/%d")
+app.dm$strdate <- strftime(app.dm$time, format="%y/%m/%d")
 # filter out days with lost data
-app.dm <- app.dm[-which(app.dm$strdate %in% c("2013/09/29","2013/07/16")),]
+app.dm <- app.dm[-which(app.dm$strdate %in% c("13/09/29","13/07/16")),]
 app.dm<- app.dm[order(app.dm$strdate), ]
 
 # Aggregate by data+cat
 ta <- aggregate(byt_r ~ strdate+Category, data=app.dm, FUN=sum)
 ts <- ta[ta$Category %in% c("HTTP","InstantMessaging","Streaming","NetMan"),]
 
-postscript('figures/appDayStat-mob.eps',width=8,height=4)
-library(ggplot2)
-p <- ggplot(ts, aes(x=strdate, y=byt_r, group=Category)) +
-  # labels and title
+(p <- ggplot(ts, aes(x=strdate, y=byt_r, group=Category)) +
   labs(title="", x="Time", y="Volumn ratio", colour="Category") +
-  # draw lines
   geom_line(aes(colour=ts$Category)) +
-  # ajust x scale ticks
+  theme(legend.position=c(0.8, 0.5)) +
   scale_x_discrete(breaks = ts$strdate[seq(1, length(ts$strdate), length.out=8)]) +
-  theme(axis.text.x = element_text(angle = -45, hjust = 0,size = 10),
+  theme(
         axis.title.x = element_text(face="bold",colour="#990000", size=20),
         axis.title.y = element_text(face="bold",colour="#990000", size=20),
-        legend.title = element_text(size=15))
-print(p)
-dev.off()
+        legend.title = element_text(size=15)))
+ggsave('figures/app-day-stat-mob.eps', p, width=6,height=4)

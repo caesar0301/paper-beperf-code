@@ -5,7 +5,7 @@ library(depmixS4)
 library(ggplot2)
 library(gridExtra)
 library(reshape2)
-source("engage_common.R")
+source("commons.R")
 
 en.mob.macro <- readRDS("rdata/engage.filtered.mob.rds")
 en.nmob.macro <- readRDS("rdata/engage.filtered.nmob.rds")
@@ -23,6 +23,7 @@ colnames(session.cnt) <- c("UID","sessions")
 p <- ggplot(session.cnt, aes(sessions)) + stat_ecdf() +
   coord_cartesian(xlim=c(0,400))
 ggsave("figures/engage-macro-obs-cnt.pdf", p)
+
 pdf("figures/engage-macro-obs-cnt2.pdf")
 plot(session.cnt$UID, session.cnt$sessions, xlim=c(0,1000))
 dev.off()

@@ -7,6 +7,10 @@ library(plyr)
 library(cluster)
 library(reshape2)
 library(scales)
+# for parallel processing
+library(parallel)
+library(doParallel)
+library(foreach)
 
 ## Global variables
 service.cn <- c("CDN服务","下载更新","主页博客",
@@ -325,7 +329,7 @@ hmm.hd <- function(fm1, fm2, obs, type="Hellinger", plot=FALSE){
     ## saveRDS(ds, "data/engage.hmm.dist.2m.rds") # debugging
     ## Plot dm converge line
     if(plot){
-        pdf("figures/hmm-model-converge.pdf", width=6, height=4)
+        pdf("hmm-model-converge.pdf", width=6, height=4)
         par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
         dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
                      function(x) mean(ds$d[1:x]))
@@ -340,25 +344,26 @@ hmm.hd <- function(fm1, fm2, obs, type="Hellinger", plot=FALSE){
         return(sum(ds$d))
 }
 
-## Generate distance matrix
-hmm.dm <- function(models, trajs){
-    dm <- c()
-    for( x in seq(1, length(models)))
-        for(y in seq(1, length(models))){
-            if(x>y) {
-                print(paste(x," ",y));
-                d <- hmm.hd(models[[x]], models[[y]], trajs, "Hellinger", TRUE)
-            } else
-                d <- 0
-            dm <- c(dm, d)}
-    dm <- matrix(dm, nrow=length(models), byrow=T)
-    return(dm)
-}
-
 ## samplse users
 sample.trajs <- function(en.mob, num){
-    return(subset(en.mob, UID %in% sample(
-        unique(en.mob$UID), num, replace=F)))
+  return(subset(en.mob, UID %in% sample(
+    unique(en.mob$UID), num, replace=F)))
+}
+
+## Generate distance matrix
+hmm.dm <- function(models, trajs, N){
+  M = length(models)
+  dm = foreach(i=1:M, .combine='rbind') %:%
+    foreach(j=1:M, .combine='c') %dopar% {
+      dist = 0
+      if( i > j ) {
+        S = sample.trajs(trajs, N)
+        dist = hmm.hd(models[[i]], models[[j]], S, "Hellinger", TRUE)
+        print(paste(i, j, dist))
+      }
+      dist
+    }
+  return(as.matrix(dm))
 }
 
 plot.dm.tile <- function(dm){

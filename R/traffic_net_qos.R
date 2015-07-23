@@ -15,7 +15,7 @@ options("scipen"=100)
 
 # sec
 # A4 plot template with justified params
-pdf("FlowDuration.pdf",height=6,width=8) # figure size in inches
+pdf("figures/qos-flow-dur.pdf",height=6,width=8) # figure size in inches
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$flw_dur, sample.size),col=1,lty=1,lwd=2,log='x',subtitles=F, 
      xlab="",ylab="",xaxt='n', yaxt='n') # disable axies and lables
@@ -35,7 +35,7 @@ dev.off()
 
 
 # KB
-pdf("FlowSize.pdf",height=6,width=8)
+pdf("figures/qos-flow-size.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$src_byt/1024, sample.size),col=1,lty=1,lwd=2,log='x',subtitles=F, 
     xlim=c(0.01, 5000),xlab="",ylab="",xaxt='n', yaxt='n')
@@ -54,7 +54,7 @@ dev.off()
 
 
 # packet
-pdf("FlowPacket.pdf",height=6,width=8)
+pdf("figures/qos-flow-pkt.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$src_pkt, sample.size), col=1, lty=1,lwd=2,log='x',xlim=c(1, 1500),
      xlab="",ylab="",xaxt='n', yaxt='n',subtitles=F)
@@ -73,7 +73,7 @@ dev.off()
 
 
 # byte
-pdf("FlowBw.pdf",height=6,width=8)
+pdf("figures/qos-flow-brate.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 sbw <- qos.mob$src_byt/1024/qos.mob$flw_dur # source bw
 vsbw <- qos.mob$src_byt/1024/qos.mob$flw_vdur # valid source bw
@@ -95,7 +95,7 @@ dev.off()
 
 
 #packet
-pdf("PacketRate.pdf",height=6,width=8)
+pdf("figures/qos-flow-prate.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$src_pkt/qos.mob$flw_dur, sample.size),col=1,lty=1,lwd=2,subtitles=F,xlab="",ylab="",xaxt='n', yaxt='n')
 Ecdf(sample(qos.mob$src_pkt/qos.mob$flw_vdur, sample.size), col=1, lty=2,lwd=2,add=T,subtitles=F)
@@ -113,7 +113,7 @@ dev.off()
 
 
 # ms
-pdf("RttAvg.pdf",height=6,width=8)
+pdf("figures/qos-rtt-avg.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$src_rtt_avg*1000, sample.size),col=1,lty=1,lwd=2,subtitles=F,
      log='x',xlim=c(1, 10e3),xlab="",ylab="",xaxt='n', yaxt='n')
@@ -132,7 +132,7 @@ dev.off()
 
 
 # ms
-pdf("RttVar.pdf",height=6,width=8)
+pdf("figures/qos-rtt-var.pdf",height=6,width=8)
 par(mar=c(5,5,1,1), mgp=c(3,0.8,0)) # change device params
 Ecdf(sample(qos.mob$src_rtt_var*1000, sample.size),col=1,lty=1,lwd=2,subtitles=F,
      log='x',xlim=c(1e-3, 10e3),xlab="",ylab="",xaxt='n', yaxt='n')
