@@ -235,12 +235,48 @@ hmm.object <- function(en.data, ns){
            gaussian(), gaussian()))
 }
 
+## calculate AICC
+AICC <- function(fm){
+  np <- npar(fm)
+  no <- nobs(fm)
+  aic <- AIC(fm)
+  return(aic + 2*np*(np+1)/(no-np-1))
+}
+
+## select optimal model from AICC stat
+hmm.model.select <- function(stat, models){
+  opt.model <- NULL
+  stat <- stat[complete.cases(stat),]
+  if(nrow(stat)==0)
+    return(opt.model)
+  
+#   ## Plot model statistics
+#   stat$penalty <- stat$AICC + 2*stat$ll
+#   melted <- melt(stat,id.vars="state",
+#                  measure.vars=c("ll","penalty","AICC"))
+#   p <- ggplot(melted, aes(state, value, group=variable, color=variable)) +
+#     geom_line() + geom_point() +
+#     theme_bw() + xlab("States")+ylab("Value")+
+#     scale_color_discrete(name="", breaks=c("ll","penalty","AICC"),
+#                          labels=c("logLik","Penalty","AICC"))
+#   p <- p + theme(legend.position=c(0.85,0.75),
+#                  axis.title.x=element_text(size=15),
+#                  axis.title.y=element_text(size=15))
+#   ggsave("figures/hmm-model-selection.pdf", p, width=4, height=3.5)
+  
+  state <- stat$state[order(stat$AICC)][1]
+  ## Select optimal model
+  opt.index <- order(stat$AICC)[1]
+  print(paste("Opt. state #: ", state)) # states
+  opt.model <- models[[state-1]]
+  return(opt.model)
+}
+
 ## learn HMM with variant states
-hmm.learn <- function(en.data, plot=FALSE){
+hmm.learn <- function(en.data){
     stat <- data.frame()
     models <- list()
     for(sn in seq(2,6)){
-        print(paste("state #: ", sn))
         en.data$IR <- en.data$IR * 100
         mod <- hmm.object(en.data, sn)
         fm <- NA
@@ -251,97 +287,74 @@ hmm.learn <- function(en.data, plot=FALSE){
             ## pass
         }, finally = {
             models <- c(models, fm)
-            if(is.na(fm))
-                stat <- rbind(stat, c(sn, rep(NA, 5)))
-            else
-                stat <- rbind(stat, c(sn,logLik(fm),AIC(fm),
-                                      BIC(fm),AICC(fm),npar(fm)))
+            stat <- if(is.na(fm)) { rbind(stat, c(sn, rep(NA, 5)))
+              } else { rbind(stat, c(sn,logLik(fm),AIC(fm), BIC(fm),AICC(fm),npar(fm))) }
         }) # END tryCatch
     }
     ## Select optimal model
     colnames(stat) <- c("state", "ll","AIC","BIC","AICC", "npar")
-    print(stat)
-    opt.model <- hmm.model.select(stat, models, plot)
-    return(opt.model)
-}
-
-## calculate AICC
-AICC <- function(fm){
-    np <- npar(fm)
-    no <- nobs(fm)
-    aic <- AIC(fm)
-    return(aic + 2*np*(np+1)/(no-np-1))
-}
-
-hmm.model.select <- function(stat, models, plot=FALSE){
-    opt.model <- NA
-    stat <- stat[complete.cases(stat),]
-    if(nrow(stat)==0) # return NA if there are no valid models
-        return(opt.model)
-    if(plot){ ## Plot model statistics
-        stat$penalty <- stat$AICC + 2*stat$ll
-        melted <- melt(stat,id.vars="state",
-                       measure.vars=c("ll","penalty","AICC"))
-        p <- ggplot(melted, aes(state, value, group=variable, color=variable)) +
-          geom_line() + geom_point() +
-          theme_bw() + xlab("States")+ylab("Value")+
-            scale_color_discrete(name="", breaks=c("ll","penalty","AICC"),
-                                 labels=c("logLik","Penalty","AICC"))
-        p <- p + theme(legend.position=c(0.85,0.75),
-                       axis.title.x=element_text(size=15),
-                       axis.title.y=element_text(size=15))
-        ggsave("figures/hmm-model-selection.pdf", p, width=4, height=3.5)
-    }
-    state <- stat$state[order(stat$AICC)][1]
-    ## Select optimal model
-    opt.index <- order(stat$AICC)[1]
-    print(paste("Opt. state #: ", state)) # states
-    opt.model <- models[[state-1]]
-    return(opt.model)
+    # print(stat)
+    opt.model <- hmm.model.select(stat, models)
+    ## Store light-weight model parameters
+    opt.model2 <- if(is.null(opt.model)) { NULL
+      } else { list(nstates=nstates(opt.model), pars=getpars(opt.model)) }
+    return(opt.model2)
 }
 
 ## calculate distance of two HMMs
-hmm.hd <- function(fm1, fm2, obs, type="Hellinger", plot=FALSE){
-    ds <- ddply(obs, .(UID), function(ob){
-        cal.viterbi <- function(o, fm){
-            hmm2 <- hmm.object(o, nstates(fm))
-            hmm2 <- setpars(hmm2, getpars(fm))
-            viterbi(hmm2)} # End of Viterbi
-        d <- NA
-        tryCatch({
-            v1 <- cal.viterbi(ob, fm1)
-            v2 <- cal.viterbi(ob, fm2)
-            p1 <- prod(apply(subset(v1,select=-state),1,max))
-            p2 <- prod(apply(subset(v2,select=-state),1,max))
-            d <- 0
-            if (type=="Hellinger"){
-                d <- 0.5*(sqrt(p1)-sqrt(p2))^2
-            } else if(type=="KL"){
-                d <- 0.5*(p1*log(p1/p2) + p2*log(p2/p1))
-            }
-        }, error=function(e) {
-            #print(e)
-        })
-        return(c(d, 1, nrow(ob)))})
-    colnames(ds) <- c("UID","d","t","obs")
-    ## Replace NA with mean of valid element
+hmm.hd <- function(optm1, optm2, obs, type="Hellinger", mc.cores=detectCores()-1){
+    # do calculation on the sample space parallely
+    obs = split(obs, obs$UID)
+    ds  = mclapply(obs, function(ob){
+      # predict with Viterbi
+      pred.viterbi <- function(o, fm){
+        hmm2 <- hmm.object(o, fm[["nstates"]])
+        hmm2 <- setpars(hmm2, fm[["pars"]])
+        viterbi(hmm2) }
+      # end of Viterbi
+      d <- NA
+      tryCatch({
+        v1 <- pred.viterbi(ob, optm1)
+        v2 <- pred.viterbi(ob, optm2)
+        p1 <- prod(apply(subset(v1,select=-state), 1, max))
+        p2 <- prod(apply(subset(v2,select=-state), 1, max))
+        d <- 0
+        if (type=="Hellinger"){
+          d <- 0.5*(sqrt(p1)-sqrt(p2))^2
+        } else if(type=="KL"){
+          d <- 0.5*(p1*log(p1/p2) + p2*log(p2/p1))
+        } else {
+          print("warnning: unsupported distance type", type)
+        }
+      }, error=function(e) {
+        #print(e)
+      })
+      return(c(d, 1, nrow(ob)))
+    }, mc.cores=mc.cores)
+    
+    # change data form
+    uids = names(ds)
+    ds = as.data.frame(t(unstack(stack(ds))))
+    colnames(ds) <- c("d","t","obs")
+    ds$UID = uids
     ds$d[is.na(ds$d)] <- mean(ds$d, na.rm=T)
-    ## saveRDS(ds, "data/engage.hmm.dist.2m.rds") # debugging
-    ## Plot dm converge line
-    if(plot){
-        pdf("hmm-model-converge.pdf", width=6, height=4)
-        par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
-        dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
-                     function(x) mean(ds$d[1:x]))
-        plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
-        abline(v=100, lty=2, col="red"); points(dmm, pch=20)
-        grid()
-        dev.off()}
+    
+#     ## Plot dm converge line
+#     pdf("hmm-model-converge.pdf", width=6, height=4)
+#     par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
+#     dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
+#                  function(x) mean(ds$d[1:x]))
+#     plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
+#     abline(v=100, lty=2, col="red"); points(dmm, pch=20)
+#     grid()
+#     dev.off()
+
     ## Return final distance
     if(type=="Hellinger")
         return(sqrt(sum(ds$d)))
     if(type=="KL")
         return(sum(ds$d))
+    return(NA)
 }
 
 ## samplse users
@@ -358,7 +371,7 @@ hmm.dm <- function(models, trajs, N){
       dist = 0
       if( i > j ) {
         S = sample.trajs(trajs, N)
-        dist = hmm.hd(models[[i]], models[[j]], S, "Hellinger", TRUE)
+        dist = hmm.hd(models[[i]], models[[j]], S, "Hellinger")
         print(paste(i, j, dist))
       }
       dist
