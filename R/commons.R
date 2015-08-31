@@ -301,60 +301,11 @@ hmm.learn <- function(en.data){
     return(opt.model2)
 }
 
-## calculate distance of two HMMs
-hmm.hd <- function(optm1, optm2, obs, type="Hellinger", mc.cores=detectCores()-1){
-    # do calculation on the sample space parallely
-    obs = split(obs, obs$UID)
-    ds  = mclapply(obs, function(ob){
-      # predict with Viterbi
-      pred.viterbi <- function(o, fm){
-        hmm2 <- hmm.object(o, fm[["nstates"]])
-        hmm2 <- setpars(hmm2, fm[["pars"]])
-        viterbi(hmm2) }
-      # end of Viterbi
-      d <- NA
-      tryCatch({
-        v1 <- pred.viterbi(ob, optm1)
-        v2 <- pred.viterbi(ob, optm2)
-        p1 <- prod(apply(subset(v1,select=-state), 1, max))
-        p2 <- prod(apply(subset(v2,select=-state), 1, max))
-        d <- 0
-        if (type=="Hellinger"){
-          d <- 0.5*(sqrt(p1)-sqrt(p2))^2
-        } else if(type=="KL"){
-          d <- 0.5*(p1*log(p1/p2) + p2*log(p2/p1))
-        } else {
-          print("warnning: unsupported distance type", type)
-        }
-      }, error=function(e) {
-        #print(e)
-      })
-      return(c(d, 1, nrow(ob)))
-    }, mc.cores=mc.cores)
-    
-    # change data form
-    uids = names(ds)
-    ds = as.data.frame(t(unstack(stack(ds))))
-    colnames(ds) <- c("d","t","obs")
-    ds$UID = uids
-    ds$d[is.na(ds$d)] <- mean(ds$d, na.rm=T)
-    
-#     ## Plot dm converge line
-#     pdf("hmm-model-converge.pdf", width=6, height=4)
-#     par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
-#     dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
-#                  function(x) mean(ds$d[1:x]))
-#     plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
-#     abline(v=100, lty=2, col="red"); points(dmm, pch=20)
-#     grid()
-#     dev.off()
-
-    ## Return final distance
-    if(type=="Hellinger")
-        return(sqrt(sum(ds$d)))
-    if(type=="KL")
-        return(sum(ds$d))
-    return(NA)
+# predict with Viterbi
+hmm.pred <- function(traj, fm){
+  hmm2 <- hmm.object(traj, fm[["nstates"]])
+  hmm2 <- setpars(hmm2, fm[["pars"]])
+  viterbi(hmm2)
 }
 
 ## samplse users
@@ -363,85 +314,86 @@ sample.trajs <- function(en.mob, num){
     unique(en.mob$UID), num, replace=F)))
 }
 
-## Generate distance matrix
-hmm.dm <- function(models, trajs, N){
-  M = length(models)
-  dm = foreach(i=1:M, .combine='rbind') %:%
-    foreach(j=1:M, .combine='c') %dopar% {
-      dist = 0
-      if( i > j ) {
-        S = sample.trajs(trajs, N)
-        dist = hmm.hd(models[[i]], models[[j]], S, "Hellinger")
-        print(paste(i, j, dist))
-      }
-      dist
+## calculate distance of two HMMs based on one observation trajectory
+hmm.model.dist <- function(traj, model1, model2, type="Hellinger") {
+  dist <- NA
+  tryCatch({
+    v1 <- hmm.pred(traj, model1)
+    v2 <- hmm.pred(traj, model2)
+    p1 <- prod(apply(subset(v1,select=-state),1,max))
+    p2 <- prod(apply(subset(v2,select=-state),1,max))
+    dist <- if (type=="Hellinger"){
+      0.5*(sqrt(p1)-sqrt(p2))^2
+    } else if(type=="KL"){
+      0.5*(p1*log(p1/p2) + p2*log(p2/p1))
+    } else {
+      0
     }
-  return(as.matrix(dm))
+  }, error=function(e) {
+    # print(e)
+  })
+  c(dist, 1, nrow(traj))
 }
 
-plot.dm.tile <- function(dm){
-    data <- as.matrix(dm)
-    hc<-hclust(dist(data))
-    rowInd<-hc$order
-    hc<-hclust(dist(t(data)))
-    colInd<-hc$order
-    data.m<-data[rowInd,colInd]
-    data.m<-apply(data.m,1, rescale)
-    data.m<-t(data.m)
-    coln<-colnames(data.m)
-    rown<-rownames(data.m)
-    colnames(data.m)<-1:ncol(data.m)
-    rownames(data.m)<-1:nrow(data.m)
-    data.m<-melt(data.m)
-    base_size<-1
-    p <- ggplot(data.m, aes(Var2, Var1)) +
-        geom_tile(aes(fill = value), colour = "white") +
-            scale_fill_gradient(low = "yellow", high = "red")
-    p <- p + theme_grey(base_size = base_size) + labs(x = "", y = "") +
-        scale_x_continuous(expand = c(0, 0),labels=coln,breaks=1:length(coln)) +
-            scale_y_continuous(expand = c(0, 0),labels=rown,breaks=1:length(rown))
-    p <- p + theme(axis.ticks = element_blank(),
-                   axis.text.x = element_text(size = base_size *0.8,
-                   angle = 90, hjust = 0, colour = "grey50"),
-                   axis.text.y = element_text(size = base_size * 0.8,
-                   hjust=1, colour="grey50"))
-    plot(p)
+## calculate distance of two HMMs based on a set of trajectories
+hmm.dist <- function(fm1, fm2, obs, type="Hellinger"){
+  ds <- ddply(obs, .(UID), hmm.model.dist, fm1, fm2, type)
+  colnames(ds) <- c("UID","d","t","obs")
+  ds$d[is.na(ds$d)] <- mean(ds$d, na.rm=T)
+#   ## Plot dm converge line
+#   pdf("hmm-model-converge.pdf", width=6, height=4)
+#   par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
+#   dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
+#                function(x) mean(ds$d[1:x]))
+#   plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
+#   abline(v=100, lty=2, col="red"); points(dmm, pch=20)
+#   grid()
+#   dev.off()
+  ## Return final distance
+  if(type=="Hellinger")
+    sqrt(sum(ds$d))
+  else if(type=="KL")
+    sum(ds$d)
+  else
+    NA
 }
 
-plot.dm.ord <- function(dm){
-    source("http://ichthyology.usm.edu/courses/multivariate/coldiss.R")
-    coldiss(dm)
+## calculate distance of two HMMs based on a set of trajectories
+hmm.dist2 <- function(optm1, optm2, obs, type="Hellinger"){
+  # do calculation on the sample space parallely
+  obs = split(obs, obs$UID)
+  ds  = mclapply(obs, hmm.model.dist, optm1, optm2, type, mc.cores=detectCores() %/% 2)
+  # change data form
+  uids = names(ds)
+  ds = as.data.frame(t(unstack(stack(ds))))
+  colnames(ds) <- c("d","t","obs")
+  ds$UID = uids
+  ds$d[is.na(ds$d)] <- mean(ds$d, na.rm=T)
+  ## Return final distance
+  if(type=="Hellinger")
+    sqrt(sum(ds$d))
+  else if(type=="KL")
+    sum(ds$d)
+  else
+    NA
 }
 
-plot.dm.hm <- function(dm){
-    par(mfrow=c(2,1))
-    heatmap(as.matrix(dm))
-    ##library(gplots)
-    ##heatmap.2(as.matrix(dm))
-}
-
-plot.dm.hc <- function(dm, k=3){
-    clust <- hclust(dm, method="average")
-    ck <- cutree(clust, k = k)
-    ord <- order(ck)
-    coph <- cophenetic(clust)
-    layout(matrix(1:4, ncol = 2, byrow=T))
-    par(mar=c(3,3,3,2), mfrow=c(1,4))
-    image(as.matrix(dm)[ord, ord], main = "Model dist.")
-    image(as.matrix(coph)[ord, ord], main = "Cophenetic dist.")
-##    image((as.matrix(coph) - as.matrix(dm))[ord, ord],
-##          main = "Cophenetic - Model dist.")
-    par(mar=c(4,4,3,2), mgp=c(1.5,0.5,0), cex.lab=1.5)
-    plot(as.dendrogram(clust), leaflab="none", main="Dendrogram",
-         xlab="User trajectories", ylab="Height")
-    par(mar=c(4,4,3,2), mgp=c(2,0.5,0), cex.lab=1.5)
-    plot(coph ~ dm, ylab = "Cophenetic dist.", xlab = "Model dist.",
-         main = "Shepard diagram")
-    rs.lab <- sprintf("%.3f", cor(coph, dm, method="spearman"))
-    text(0.8*max(dm), 0.5*max(coph), cex=1.5,
-         substitute(paste(r[s], " = ", rs), list(rs=rs.lab)))
-    abline(0,1, col = "red")
-    box()
-    layout(1)
-    return(ck)
+## Generate distance matrix
+hmm.dm <- function(models, trajs, N, cores=2L){
+  M = length(models)
+  outter = rep(1:M, each=M)
+  inner = rep(1:M, times=M)
+  start.time <- Sys.time()
+  dm <- mcmapply(function(i, j) {
+    dist = 0
+    if( i < j ) {
+      S = sample.trajs(trajs, N)
+      dist = hmm.dist2(models[[i]], models[[j]], S, "Hellinger")
+      print(paste(i, j, dist))
+    }
+    dist
+  }, outter, inner, mc.cores=cores)
+  dur <- Sys.time() - start.time
+  print(paste("total us time:", dur))
+  matrix(dm, nrow=M, byrow=T)
 }

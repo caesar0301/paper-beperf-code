@@ -1,28 +1,48 @@
 #!/usr/bin/env R
 # author: chenxm
-library(depmixS4)
-library(ggplot2)
-library(GGally)
-library(plyr)
-library(cluster)
-library(reshape2)
-library(scales)
-library(car)
-library(grid)
 source("commons.R")
+library(ggplot2)
+library(car)
 
-## Plot dissimilarity matrix
-en.mob.s <- readRDS("rdata/engage.macro.s100.rds")
+en.mob.s <- readRDS("rdata/engage.traj.s100.rds")
 models <- readRDS("rdata/engage.hmm.models.s100.rds")
 dm <- readRDS("rdata/engage.hmm.dmat.s100.rds")
-postscript("figures/hmm-model-cluster-distance.eps", width=12, height=3)
-ck <- plot.dm.hc(dm, 2)
-table(ck)
-users.cls <- data.frame(UID=attr(models, "split_labels"), class=ck)
-en.mob.cls <- merge(en.mob.s, users.cls, by=c("UID"))
+
+## Plot dissimilarity matrix
+k = 2
+s = 100
+clust <- hclust(dm, method="average")
+ck <- cutree(clust, k = k)
+ord <- order(ck)
+coph <- cophenetic(clust)
+# hmm model distance
+postscript(paste("figures/hmm-model-cluster-distance-s", s, "-k", k, "-1.eps", sep=""), width=4, height=4.5)
+image(as.matrix(dm)[ord, ord], main = "Model dist.")
+dev.off()
+# cophenetic distance
+postscript(paste("figures/hmm-model-cluster-distance-s", s, "-k", k, "-2.eps", sep=""), width=4, height=4.5)
+image(as.matrix(coph)[ord, ord], main = "Cophenetic dist.")
+dev.off()
+# Dendrogram
+postscript(paste("figures/hmm-model-cluster-distance-s", s, "-k", k, "-3.eps", sep=""), width=4, height=4.5)
+par(mar=c(4,4,3,2), mgp=c(1.5,0.5,0), cex.lab=1.5)
+plot(as.dendrogram(clust), leaflab="none", main="Dendrogram",
+     xlab="User trajectories", ylab="Height")
+dev.off()
+# Shepard diagram
+postscript(paste("figures/hmm-model-cluster-distance-s", s, "-k", k, "-4.eps", sep=""), width=4, height=4.5)
+par(mar=c(4,4,3,2), mgp=c(2,0.5,0), cex.lab=1.5)
+plot(coph ~ dm, ylab = "Cophenetic dist.", xlab = "Model dist.",main = "Shepard diagram")
+rs.lab <- sprintf("%.3f", cor(coph, dm, method="spearman"))
+text(0.8*max(dm), 0.5*max(coph), cex=1.5, substitute(paste(r[s], " = ", rs), list(rs=rs.lab)))
+abline(0,1, col = "red")
+box()
 dev.off()
 
-## observations of principle states
+users.cls <- data.frame(UID=attr(models, "split_labels"), class=ck)
+en.mob.cls <- merge(en.mob.s, users.cls, by=c("UID"))
+
+## extract principle states
 ps <- do.call(rbind, lapply(models, function(m){
   states <- posterior(m)$state
   pca <- order(table(states), decreasing=T)[1:2]
@@ -33,9 +53,57 @@ ps <- do.call(rbind, lapply(models, function(m){
   prp <- prp[order(prp$SDur),]
   prp$state <- c("PS1","PS2")
   return(prp)
-}))
+  }))
 ps$UID <- sapply(rownames(ps), function(s) strsplit(s, "\\.")[[1]][1])
 ps <- merge(ps, users.cls, by=c("UID"))
+
+## analyze clusters regarding PS
+ggplot(ps, aes(SDur, VF, color=state)) + geom_point(shape=2, size=2) + theme_bw() +
+  xlab("Eng. session duration (s)") + ylab("Visit frequency") +
+  theme(legend.position=c(.8, 0.8)) +
+  scale_color_discrete(name="PriState", breaks=c("PS1", "PS2"))
+ggsave("figures/hmm-cluster-ps-vf-sdur.pdf", width=4, height=3)
+
+## analyze clusters regarding PS distance
+ps.diff <- ps %>% group_by(class) %>% do(data.frame(
+  SDur.diff=diff(.$SDur),
+  VF.diff=diff(.$VF),
+  ADur.diff=diff(.$ADur),
+  MWTime.diff=diff(.$MWTime),
+  PABw.diff=diff(.$PABw)))
+ggplot(ps.diff, aes(PABw.diff, group=class, linetype=as.factor(class))) + stat_ecdf()
+
+## analyze clusters regarding PS interactions
+ggplot(filter(ps, class==1), aes(ADur, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c1-vf-adur.pdf", width=3.5, height=2.5)
+
+ggplot(filter(ps, class==1), aes(MWTime, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c1-vf-mwtime.pdf", width=4, height=3)
+
+ggplot(filter(ps, class==1), aes(PABw, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c1-vf-pabw.pdf", width=4, height=3)
+
+ggplot(filter(ps, class==2), aes(ADur, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c2-vf-adur.pdf", width=4, height=3)
+
+ggplot(filter(ps, class==2), aes(MWTime, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c2-vf-mwtime.pdf", width=4, height=3)
+
+ggplot(filter(ps, class==2), aes(PABw, VF, group=state, color=state)) +
+  geom_point(shape=1, size=2) + geom_smooth(method=lm, se=F, fullrange=F) + theme_bw() +
+  theme(legend.position="none")
+ggsave("figures/hmm-cluster-c2-vf-pabw.pdf", width=4, height=3)
+
 
 ## Different cluster
 pdf("figures/hmm-pstates-cls1.pdf", width=8, height=6)
@@ -44,6 +112,7 @@ scatterplotMatrix(
   data=ps[ps$class=="1",], by.groups=TRUE, reg.line=rlm,
   var.labels = c("Eng.Dur","VisitFreq.","Act.Dur","WaitTime","Perc.BW"))
 dev.off()
+
 pdf("figures/hmm-pstates-cls2.pdf", width=8, height=6)
 scatterplotMatrix(
   ~ SDur + VF + ADur + MWTime + PABw|state, smoother=FALSE,
@@ -58,6 +127,7 @@ scatterplotMatrix(
   data=ps[ps$state=="PS1",], by.groups=TRUE, reg.line=rlm,
   var.labels = c("Eng.Dur","VisitFreq.","Act.Dur","WaitTime","Perc.BW"))
 dev.off()
+
 pdf("figures/hmm-clusters-ps2.pdf", width=8, height=6)
 scatterplotMatrix(
   ~ SDur + VF + ADur + MWTime + PABw|class, smoother=FALSE,
@@ -86,10 +156,6 @@ plot(ts(en.mob.cls[en.mob.cls$class=="2",
                    c("UID","service.en","TOD","TOW","SDur","ADur","PABw","MWTime")]))
 dev.off()
 
-
-p <- ggplot(en.mob.cls, aes(SDur, group=class)) + theme_bw() +
-  stat_ecdf()
-plot(p)
 
 ## One user 39856 for example
 unique.uid <- unique(en.mob$UID)

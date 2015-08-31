@@ -54,8 +54,8 @@ plot.app.vol <- function(act, ofile){
           axis.title.x=element_text(size=16)))
   ggsave(ofile, width=4, height=3.7)
 }
-plot.app.vol(act.mob, "figures/apps-volume-m.eps")
-plot.app.vol(act.nmob, "figures/apps-volume-nm.eps")
+plot.app.vol(act.mob, "figures/apps-volume-m.pdf")
+plot.app.vol(act.nmob, "figures/apps-volume-nm.pdf")
 
 ##++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Visualize perceptual metrics for applications
@@ -70,19 +70,19 @@ options("scipen"=100, "digits"=4) # disable scientific notation
 (p <- ggplot(act.flt, aes(ADur, color=dev, linetype=category)) +
   stat_ecdf(geom='smooth') + theme_bw() + scale_x_log10() +
   coord_cartesian(xlim=c(0.01, 1000), ylim=c(0, 1.0)) +
-  xlab("Activity duration (s)") + ylab("Activity proportion") +
+  xlab("Activity duration (s)") + ylab("Activity CDF") +
   theme(legend.position=c(.85, .4),
         axis.title.x=element_text(size=15),
         axis.title.y=element_text(size=15)) +
   scale_linetype_discrete(name="Applications", labels=apps) +
   scale_color_discrete(name="Devices", labels=c("Mobile", "NonMobile")))
-ggsave("figures/apps-adur.eps", p, width=4.5, height=3.5)
+ggsave("figures/apps-adur.pdf", p, width=4.5, height=3.5)
 
 ## Expected waiting time
 (p <- ggplot(act.flt, aes(MWTime, color=dev, linetype=category)) +
   stat_ecdf(geom='smooth') + theme_bw() + scale_x_log10() +
   coord_cartesian(xlim=c(0.01, 60), ylim=c(0, 1.0)) +
-  xlab("Expected waiting time (s)") +
+  xlab("Perceived waiting time (s)") +
   ylab("Activity proportion") +
   theme(legend.position="none",
         axis.title.x=element_text(size=15),
@@ -94,7 +94,7 @@ ggsave("figures/apps-mwtime.eps", p, width=4.5, height=3.5)
 (p <- ggplot(act.flt, aes(PABw,color=dev, linetype=category)) +
   stat_ecdf(geom='smooth') + theme_bw() +
   coord_cartesian(xlim=c(0, 300), ylim=c(0, 1.0)) +
-  xlab("Perceived activity bandwidth (KB/s)") +
+  xlab("Perceived throughput (KB/s)") +
   ylab("Activity proportion") +
   theme(legend.position="none",
         axis.title.x=element_text(size=15),

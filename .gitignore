@@ -1,3 +1,8 @@
+data/
+R/rdata/
+R/figures/
+R/figures2/
+
 # Java compling files
 *.idea
 *.iml

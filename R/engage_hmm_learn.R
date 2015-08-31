@@ -5,9 +5,9 @@ source("commons.R")
 #---------------------------------------
 SMPMAX=20000
 SAMPLE=5
-MAXCORE=(detectCores()-1)
+MAXCORE=(detectCores())
 MAXPROC=MAXCORE
-MODEL_DIST_NUM=150 # ~2^10 observations
+MODEL_DIST_NUM=100 # ~2^10 observations
 #---------------------------------------
 
 ## Load data
@@ -28,11 +28,7 @@ models <- models[! sapply(models, is.null)] # remove NULL models
 saveRDS(models, paste("rdata/engage.hmm.models.s", SAMPLE ,".rds", sep=""))
 
 ## Calculate distance matrix parallelly
-cl = makeCluster(MAXPROC, outfile="hmm_dist.log", type="FORK")
-registerDoParallel(cl)
-dm <- as.dist(hmm.dm(models, en.mob, MODEL_DIST_NUM))
+dm <- hmm.dm(models, en.mob, MODEL_DIST_NUM, cores=MAXPROC)
 saveRDS(dm, paste("rdata/engage.hmm.dmat.s", SAMPLE ,".rds", sep=""))
 
-stopCluster(cl)
-
-# EOF
+print(dm)

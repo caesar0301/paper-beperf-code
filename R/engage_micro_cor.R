@@ -29,7 +29,7 @@ pdf("figures/engage-perc-sdur-adur.pdf", width=4, height=3.5)
 par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(ADur, SDur, mean,  n=100), xlim=c(0, 60),ylim=c(10, 100),
      type="l", lwd=3, pch=NA,
-     xlab="Act. duration (s)", ylab="Eng. duration (m)")
+     xlab="Perc. acitivity duration (s)", ylab="Eng. duration (m)")
 lines(wapply(ADur, SDur, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(ADur, SDur, CL, sd=-0.25), col="blue", lty=2)
 grid()
@@ -40,7 +40,7 @@ pdf("figures/engage-perc-sdur-wt.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(MWTime, SDur, mean, n=100), xlim=c(0, 10), ylim=c(30, 100),
      type="l", lwd=4, pch=NA,
-     xlab="Wait time (s)", ylab="Eng. duration (m)")
+     xlab="Perc. waiting time (s)", ylab="Eng. duration (m)")
 grid()
 lines(wapply(MWTime, SDur, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(MWTime, SDur, CL, sd=-0.25), col="blue", lty=2)
@@ -51,7 +51,7 @@ pdf("figures/engage-perc-sdur-pbw.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(PABw, SDur, mean, n=100), xlim=c(0, 500), ylim=c(20, 60),
      type="l", lwd=4, pch=NA,
-     xlab="Perc. bandwidth (KB/s)", ylab="Eng. duration (m)")
+     xlab="Perc. throughput (KB/s)", ylab="Eng. duration (m)")
 grid()
 lines(wapply(PABw, SDur, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(PABw, SDur, CL, sd=-0.25), col="blue", lty=2)
@@ -62,7 +62,7 @@ pdf("figures/engage-perc-ir-adur.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(ADur, IR, mean, n=100), xlim=c(0, 60),ylim=c(0, 0.1),
      type="l", lwd=3, pch=NA,
-     xlab="Act. duration (s)", ylab="Int. ratio")
+     xlab="Perc. acitivity duration (s)", ylab="Int. ratio")
 grid()
 lines(wapply(ADur, IR, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(ADur, IR, CL, sd=-0.25), col="blue", lty=2)
@@ -73,7 +73,7 @@ pdf("figures/engage-perc-ir-wt.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(MWTime, IR, mean, n=100), xlim=c(0, 10), ylim=c(0, 0.06),
      type="l", lwd=4, pch=NA,
-     xlab="Wait time (s)", ylab="Int. ratio")
+     xlab="Perc. waiting time (s)", ylab="Int. ratio")
 grid()
 lines(wapply(MWTime, IR, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(MWTime, IR, CL, sd=-0.25), col="blue", lty=2)
@@ -84,7 +84,7 @@ pdf("figures/engage-perc-ir-pbw.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(PABw, IR, mean, n=100), xlim=c(0, 500), ylim=c(0, 0.07),
      type="l", lwd=4, pch=NA,
-     xlab="Perc. bandwidth (KB/s)", ylab="Int. ratio")
+     xlab="Perc. throughput (KB/s)", ylab="Int. ratio")
 grid()
 lines(wapply(PABw, IR, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(PABw, IR, CL, sd=-0.25), col="blue", lty=2)
@@ -95,7 +95,7 @@ pdf("figures/engage-perc-vf-adur.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(ADur, VF, mean, n=100), xlim=c(0, 60),ylim=c(0, 0.1),
      type="l", lwd=4, pch=NA,
-     xlab="Act. duration (s)", ylab="Visit freq.")
+     xlab="Perc. acitivity duration (s)", ylab="Visit freq.")
 grid()
 lines(wapply(ADur, VF, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(ADur, VF, CL, sd=-0.25), col="blue", lty=2)
@@ -106,7 +106,7 @@ pdf("figures/engage-perc-vf-wt.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(MWTime, VF, mean, n=100), xlim=c(0, 10), ylim=c(0, 0.1),
      type="l", lwd=4, pch=NA,
-     xlab="Wait time (s)", ylab="Visit freq.")
+     xlab="Perc. waiting time (s)", ylab="Visit freq.")
 grid()
 lines(wapply(MWTime, VF, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(MWTime, VF, CL, sd=-0.25), col="blue", lty=2)
@@ -117,7 +117,7 @@ pdf("figures/engage-perc-vf-pbw.pdf", width=4, height=3.5)
 mpar <- par(mar=c(4,4,1,1), cex.lab=1.5, mgp=c(2,0.5,0))
 plot(wapply(PABw, VF, mean, n=100), xlim=c(0, 500), ylim=c(0.02, 0.08),
      type="l", lwd=4, pch=NA,
-     xlab="Perc. bandwidth (KB/s)", ylab="Visit freq.")
+     xlab="Perc. throughput (KB/s)", ylab="Visit freq.")
 grid()
 lines(wapply(PABw, VF, CL, sd=0.25), col="blue", lty=2)
 lines(wapply(PABw, VF, CL, sd=-0.25), col="blue", lty=2)
@@ -175,12 +175,12 @@ colnames(uc.sig.m) <- c("UID","eng","perc","cor")
 
 ## plot user-specific correlation
 plot.user.cor <- function(df){
-  levels(df$eng) <- c("Engagement duration",
+  levels(df$eng) <- c("Engaging session duration",
                       "Interruption ratio",
                       "Visit frequency")
-  levels(df$perc) <- c(paste("Act.", "\n", "duration"),
-                       paste("Time", "\n", "waiting"),
-                       paste("Perc.", "\n", "bandwidth"))
+  levels(df$perc) <- c(paste("Perc.", "\n", "AD"),
+                       paste("Perc.", "\n", "WT"),
+                       paste("Perc.", "\n", "TP"))
   p <- ggplot(df, aes(factor(perc), cor, group=perc)) +
     geom_violin() + theme_bw() + facet_grid(. ~ eng) +
     labs(x="", y="Spearman corr. (p < 0.05)") +
