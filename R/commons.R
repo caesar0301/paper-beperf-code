@@ -225,6 +225,35 @@ rank.unique <- function(x, na.last=TRUE){
 
 
 ############# HMMs #################
+## learn HMM with variant states
+hmm.learn <- function(en.data){
+  stat <- data.frame()
+  models <- list()
+  for(sn in seq(2,6)){
+    en.data$IR <- en.data$IR * 100
+    mod <- hmm.object(en.data, sn)
+    fm <- NA
+    tryCatch({
+      set.seed(1);
+      fm <- fit(mod, verbose=F)
+    }, error= function(e){
+      ## pass
+    }, finally = {
+      models <- c(models, fm)
+      stat <- if(is.na(fm)) { rbind(stat, c(sn, rep(NA, 5)))
+      } else { rbind(stat, c(sn, logLik(fm), AIC(fm), BIC(fm), AICC(fm), npar(fm))) }
+    }) # END tryCatch
+  }
+  ## Select optimal model
+  colnames(stat) <- c("state", "ll","AIC","BIC","AICC", "npar")
+  # print(stat)
+  opt.model <- hmm.model.select(stat, models)
+  ## Store light-weight model parameters
+  opt.model2 <- if(is.null(opt.model)) { NULL
+  } else { list(nstates=nstates(opt.model), pars=getpars(opt.model)) }
+  return(opt.model2)
+}
+
 ## Create an HMM object without parameters fitted
 hmm.object <- function(en.data, ns){
     depmix(response=list(SDur ~ 1, VF ~ 1, ADur ~ 1,
@@ -250,19 +279,19 @@ hmm.model.select <- function(stat, models){
   if(nrow(stat)==0)
     return(opt.model)
   
-#   ## Plot model statistics
-#   stat$penalty <- stat$AICC + 2*stat$ll
-#   melted <- melt(stat,id.vars="state",
-#                  measure.vars=c("ll","penalty","AICC"))
-#   p <- ggplot(melted, aes(state, value, group=variable, color=variable)) +
-#     geom_line() + geom_point() +
-#     theme_bw() + xlab("States")+ylab("Value")+
-#     scale_color_discrete(name="", breaks=c("ll","penalty","AICC"),
-#                          labels=c("logLik","Penalty","AICC"))
-#   p <- p + theme(legend.position=c(0.85,0.75),
-#                  axis.title.x=element_text(size=15),
-#                  axis.title.y=element_text(size=15))
-#   ggsave("figures/hmm-model-selection.pdf", p, width=4, height=3.5)
+  #   ## Plot model statistics
+  #   stat$penalty <- stat$AICC + 2*stat$ll
+  #   melted <- melt(stat,id.vars="state",
+  #                  measure.vars=c("ll","penalty","AICC"))
+  #   p <- ggplot(melted, aes(state, value, group=variable, color=variable)) +
+  #     geom_line() + geom_point() +
+  #     theme_bw() + xlab("States")+ylab("Value")+
+  #     scale_color_discrete(name="", breaks=c("ll","penalty","AICC"),
+  #                          labels=c("logLik","Penalty","AICC"))
+  #   p <- p + theme(legend.position=c(0.85,0.75),
+  #                  axis.title.x=element_text(size=15),
+  #                  axis.title.y=element_text(size=15))
+  #   ggsave("figures/hmm-model-selection.pdf", p, width=4, height=3.5)
   
   state <- stat$state[order(stat$AICC)][1]
   ## Select optimal model
@@ -272,40 +301,31 @@ hmm.model.select <- function(stat, models){
   return(opt.model)
 }
 
-## learn HMM with variant states
-hmm.learn <- function(en.data){
-    stat <- data.frame()
-    models <- list()
-    for(sn in seq(2,6)){
-        en.data$IR <- en.data$IR * 100
-        mod <- hmm.object(en.data, sn)
-        fm <- NA
-        tryCatch({
-            set.seed(1);
-            fm <- fit(mod, verbose=F)
-        }, error= function(e){
-            ## pass
-        }, finally = {
-            models <- c(models, fm)
-            stat <- if(is.na(fm)) { rbind(stat, c(sn, rep(NA, 5)))
-              } else { rbind(stat, c(sn,logLik(fm),AIC(fm), BIC(fm),AICC(fm),npar(fm))) }
-        }) # END tryCatch
-    }
-    ## Select optimal model
-    colnames(stat) <- c("state", "ll","AIC","BIC","AICC", "npar")
-    # print(stat)
-    opt.model <- hmm.model.select(stat, models)
-    ## Store light-weight model parameters
-    opt.model2 <- if(is.null(opt.model)) { NULL
-      } else { list(nstates=nstates(opt.model), pars=getpars(opt.model)) }
-    return(opt.model2)
-}
-
 # predict with Viterbi
 hmm.pred <- function(traj, fm){
   hmm2 <- hmm.object(traj, fm[["nstates"]])
   hmm2 <- setpars(hmm2, fm[["pars"]])
   viterbi(hmm2)
+}
+
+## Generate distance matrix
+hmm.dm <- function(models, trajs, N, cores=2L){
+  M = length(models)
+  outter = rep(1:M, each=M)
+  inner = rep(1:M, times=M)
+  start.time <- Sys.time()
+  dm <- mcmapply(function(i, j) {
+    dist = 0
+    if( i < j ) {
+      S = sample.trajs(trajs, N)
+      dist = hmm.dist2(models[[i]], models[[j]], S, "Hellinger")
+      print(paste(i, j, dist))
+    }
+    dist
+  }, outter, inner, mc.cores=cores)
+  dur <- Sys.time() - start.time
+  print(paste("total us time:", dur))
+  matrix(dm, nrow=M, byrow=T)
 }
 
 ## samplse users
@@ -314,41 +334,20 @@ sample.trajs <- function(en.mob, num){
     unique(en.mob$UID), num, replace=F)))
 }
 
-## calculate distance of two HMMs based on one observation trajectory
-hmm.model.dist <- function(traj, model1, model2, type="Hellinger") {
-  dist <- NA
-  tryCatch({
-    v1 <- hmm.pred(traj, model1)
-    v2 <- hmm.pred(traj, model2)
-    p1 <- prod(apply(subset(v1,select=-state),1,max))
-    p2 <- prod(apply(subset(v2,select=-state),1,max))
-    dist <- if (type=="Hellinger"){
-      0.5*(sqrt(p1)-sqrt(p2))^2
-    } else if(type=="KL"){
-      0.5*(p1*log(p1/p2) + p2*log(p2/p1))
-    } else {
-      0
-    }
-  }, error=function(e) {
-    # print(e)
-  })
-  c(dist, 1, nrow(traj))
-}
-
 ## calculate distance of two HMMs based on a set of trajectories
 hmm.dist <- function(fm1, fm2, obs, type="Hellinger"){
   ds <- ddply(obs, .(UID), hmm.model.dist, fm1, fm2, type)
   colnames(ds) <- c("UID","d","t","obs")
   ds$d[is.na(ds$d)] <- mean(ds$d, na.rm=T)
-#   ## Plot dm converge line
-#   pdf("hmm-model-converge.pdf", width=6, height=4)
-#   par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
-#   dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
-#                function(x) mean(ds$d[1:x]))
-#   plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
-#   abline(v=100, lty=2, col="red"); points(dmm, pch=20)
-#   grid()
-#   dev.off()
+  #   ## Plot dm converge line
+  #   pdf("hmm-model-converge.pdf", width=6, height=4)
+  #   par(mar=c(4,5,1,1), mgp=c(2.2,0.5,0), cex.lab=1.7)
+  #   dmm <- apply(as.matrix(seq(1:length(ds$d))),1,
+  #                function(x) mean(ds$d[1:x]))
+  #   plot(dmm, type="l", xlab="N", ylab=expression(H["i,j"]))
+  #   abline(v=100, lty=2, col="red"); points(dmm, pch=20)
+  #   grid()
+  #   dev.off()
   ## Return final distance
   if(type=="Hellinger")
     sqrt(sum(ds$d))
@@ -378,22 +377,23 @@ hmm.dist2 <- function(optm1, optm2, obs, type="Hellinger"){
     NA
 }
 
-## Generate distance matrix
-hmm.dm <- function(models, trajs, N, cores=2L){
-  M = length(models)
-  outter = rep(1:M, each=M)
-  inner = rep(1:M, times=M)
-  start.time <- Sys.time()
-  dm <- mcmapply(function(i, j) {
-    dist = 0
-    if( i < j ) {
-      S = sample.trajs(trajs, N)
-      dist = hmm.dist2(models[[i]], models[[j]], S, "Hellinger")
-      print(paste(i, j, dist))
+## calculate distance of two HMMs based on one observation trajectory
+hmm.model.dist <- function(traj, model1, model2, type="Hellinger") {
+  dist <- NA
+  tryCatch({
+    v1 <- hmm.pred(traj, model1)
+    v2 <- hmm.pred(traj, model2)
+    p1 <- prod(apply(subset(v1,select=-state),1,max))
+    p2 <- prod(apply(subset(v2,select=-state),1,max))
+    dist <- if (type=="Hellinger"){
+      0.5*(sqrt(p1)-sqrt(p2))^2
+    } else if(type=="KL"){
+      0.5*(p1*log(p1/p2) + p2*log(p2/p1))
+    } else {
+      0
     }
-    dist
-  }, outter, inner, mc.cores=cores)
-  dur <- Sys.time() - start.time
-  print(paste("total us time:", dur))
-  matrix(dm, nrow=M, byrow=T)
+  }, error=function(e) {
+    # print(e)
+  })
+  c(dist, 1, nrow(traj))
 }
